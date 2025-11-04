@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerenciador de Playlist - PostgreSQL & Flask</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; }
+        /* Estilo da Tabela */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        /* Estilo do Formulário */
+        form { background: #eee; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input[type="text"], input[type="number"] { width: 95%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #28a745; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px; }
+        .delete-btn { background-color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📀 Gerenciador de Playlist (CRUD)</h1>
+
+        <h2>Adicionar Nova Música (CREATE)</h2>
+        <form method="POST" action="/">
+            <label for="titulo">Título *</label>
+            <input type="text" id="titulo" name="titulo" required>
+
+            <label for="artista">Artista *</label>
+            <input type="text" id="artista" name="artista" required>
+
+            <label for="genero">Gênero</label>
+            <input type="text" id="genero" name="genero">
+
+            <label for="duracao">Duração (segundos)</label>
+            <input type="number" id="duracao" name="duracao">
+            
+            <label for="ano">Ano de Lançamento</label>
+            <input type="number" id="ano" name="ano">
+
+            <button type="submit">Adicionar Música</button>
+        </form>
+
+        <h2>Lista de Músicas Cadastradas (READ)</h2>
+        {% if musicas %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Título</th>
+                        <th>Artista</th>
+                        <th>Gênero</th>
+                        <th>Duração (s)</th>
+                        <th>Ano</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for musica in musicas %}
+                    <tr>
+                        <td>{{ musica.id }}</td>
+                        <td>{{ musica.titulo }}</td>
+                        <td>{{ musica.artista }}</td>
+                        <td>{{ musica.genero if musica.genero else '-' }}</td>
+                        <td>{{ musica.duracao_seconds if musica.duracao_seconds else '-' }}</td>
+                        <td>{{ musica.ano if musica.ano else '-' }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('delete_musica', musica_id=musica.id) }}" style="display:inline;">
+                                <button type="submit" class="delete-btn">Excluir</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Nenhuma música cadastrada ainda.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
