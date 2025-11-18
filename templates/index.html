@@ -1,83 +1,148 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Gerenciador de Playlist - PostgreSQL & Flask</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Playlist (Relacional)</title>
+    <!-- Inclui Tailwind CSS para estilização rápida -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h1, h2 { color: #333; }
-        /* Estilo da Tabela */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #007bff; color: white; }
-        /* Estilo do Formulário */
-        form { background: #eee; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-        label { display: block; margin-top: 10px; font-weight: bold; }
-        input[type="text"], input[type="number"] { width: 95%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
-        button { background-color: #28a745; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px; }
-        .delete-btn { background-color: #dc3545; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f9;
+        }
+        .container {
+            max-width: 1200px;
+        }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>📀 Gerenciador de Playlist (CRUD)</h1>
+<body class="p-8">
 
-        <h2>Adicionar Nova Música (CREATE)</h2>
-        <form method="POST" action="/">
-            <label for="titulo">Título *</label>
-            <input type="text" id="titulo" name="titulo" required>
+    <div class="container mx-auto bg-white p-6 rounded-xl shadow-2xl">
+        <h1 class="text-3xl font-bold mb-8 text-indigo-700 border-b pb-2">Gerenciador de Músicas e Metadados</h1>
 
-            <label for="artista">Artista *</label>
-            <input type="text" id="artista" name="artista" required>
+        <!-- Mensagens Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-4">
+                    {% for category, message in messages %}
+                        <div class="p-3 rounded-lg text-sm {% if category == 'success' %}bg-green-100 text-green-700{% elif category == 'danger' %}bg-red-100 text-red-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
 
-            <label for="genero">Gênero</label>
-            <input type="text" id="genero" name="genero">
-
-            <label for="duracao">Duração (segundos)</label>
-            <input type="number" id="duracao" name="duracao">
+        <!-- Formulários de Adição de Metadados (Gravadora e Compositor) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-4 bg-gray-50 rounded-lg shadow-inner">
+            <!-- Adicionar Gravadora -->
+            <div class="border-r md:pr-4">
+                <h2 class="text-xl font-semibold mb-3 text-gray-800">Adicionar Nova Gravadora</h2>
+                <form method="POST" action="{{ url_for('add_gravadora') }}" class="flex space-x-2">
+                    <input type="text" name="nome" placeholder="Nome da Gravadora" required
+                           class="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">
+                        Adicionar
+                    </button>
+                </form>
+                <p class="text-xs text-gray-500 mt-2">Gravadoras Atuais: ({{ gravadoras|length }}) {{ gravadoras|map(attribute='nome')|join(', ') }}</p>
+            </div>
             
-            <label for="ano">Ano de Lançamento</label>
-            <input type="number" id="ano" name="ano">
+            <!-- Adicionar Compositor -->
+            <div>
+                <h2 class="text-xl font-semibold mb-3 text-gray-800">Adicionar Novo Compositor</h2>
+                <form method="POST" action="{{ url_for('add_compositor') }}" class="flex space-x-2">
+                    <input type="text" name="nome" placeholder="Nome do Compositor" required
+                           class="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">
+                        Adicionar
+                    </button>
+                </form>
+                <p class="text-xs text-gray-500 mt-2">Compositores Atuais: ({{ compositores|length }}) {{ compositores|map(attribute='nome')|join(', ') }}</p>
+            </div>
+        </div>
 
-            <button type="submit">Adicionar Música</button>
+        <!-- Formulário de Adição de Música -->
+        <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Adicionar Nova Música</h2>
+        <form method="POST" action="{{ url_for('index') }}" class="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border border-indigo-200 rounded-lg shadow-lg mb-8">
+            <input type="text" name="titulo" placeholder="Título" required
+                   class="p-2 border rounded-lg md:col-span-2">
+            <input type="text" name="artista" placeholder="Artista" required
+                   class="p-2 border rounded-lg md:col-span-2">
+            
+            <select name="gravadora_id" class="p-2 border rounded-lg">
+                <option value="">-- Selecione Gravadora (Opcional) --</option>
+                {% for gravadora in gravadoras %}
+                    <option value="{{ gravadora.id }}">{{ gravadora.nome }}</option>
+                {% endfor %}
+            </select>
+            
+            <select name="compositor_id" class="p-2 border rounded-lg">
+                <option value="">-- Selecione Compositor (Opcional) --</option>
+                {% for compositor in compositores %}
+                    <option value="{{ compositor.id }}">{{ compositor.nome }}</option>
+                {% endfor %}
+            </select>
+            
+            <input type="text" name="genero" placeholder="Gênero"
+                   class="p-2 border rounded-lg">
+            <input type="number" name="duracao" placeholder="Duração (Segundos)"
+                   class="p-2 border rounded-lg">
+            <input type="number" name="ano" placeholder="Ano de Lançamento"
+                   class="p-2 border rounded-lg">
+            
+            <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 md:col-span-3">
+                Adicionar Música
+            </button>
         </form>
 
-        <h2>Lista de Músicas Cadastradas (READ)</h2>
-        {% if musicas %}
-            <table>
-                <thead>
+        <!-- Lista de Músicas -->
+        <h2 class="text-2xl font-semibold mb-4 text-indigo-600 mt-10">Músicas na Playlist</h2>
+        <div class="overflow-x-auto rounded-lg shadow-xl">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-indigo-50">
                     <tr>
-                        <th>ID</th>
-                        <th>Título</th>
-                        <th>Artista</th>
-                        <th>Gênero</th>
-                        <th>Duração (s)</th>
-                        <th>Ano</th>
-                        <th>Ação</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Artista</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gênero</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gravadora</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Compositor</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duração (s)</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ano</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="bg-white divide-y divide-gray-200">
                     {% for musica in musicas %}
-                    <tr>
-                        <td>{{ musica.id }}</td>
-                        <td>{{ musica.titulo }}</td>
-                        <td>{{ musica.artista }}</td>
-                        <td>{{ musica.genero if musica.genero else '-' }}</td>
-                        <td>{{ musica.duracao_seconds if musica.duracao_seconds else '-' }}</td>
-                        <td>{{ musica.ano if musica.ano else '-' }}</td>
-                        <td>
-                            <form method="POST" action="{{ url_for('delete_musica', musica_id=musica.id) }}" style="display:inline;">
-                                <button type="submit" class="delete-btn">Excluir</button>
-                            </form>
-                        </td>
-                    </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ musica.id }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">{{ musica.titulo }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ musica.artista }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ musica.genero }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-indigo-600">{{ musica.gravadora_nome if musica.gravadora_nome else 'N/A' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-purple-600">{{ musica.compositor_nome if musica.compositor_nome else 'N/A' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ musica.duracao_seconds if musica.duracao_seconds else '-' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ musica.ano if musica.ano else '-' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <form method="POST" action="{{ url_for('delete_musica', musica_id=musica.id) }}" style="display:inline;">
+                                    <button type="submit" onclick="return confirm('Tem certeza que deseja deletar esta música?');" 
+                                            class="text-red-600 hover:text-red-900 transition duration-200">
+                                        Deletar
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="9" class="px-6 py-4 text-center text-gray-500">Nenhuma música encontrada.</td>
+                        </tr>
                     {% endfor %}
                 </tbody>
             </table>
-        {% else %}
-            <p>Nenhuma música cadastrada ainda.</p>
-        {% endif %}
+        </div>
     </div>
+
 </body>
 </html>

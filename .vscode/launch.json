@@ -1,14 +1,23 @@
+// Conteúdo do seu .vscode/launch.json
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "chrome",
+            "name": "Python: Flask",
+            "type": "python",
             "request": "launch",
-            "name": "Open index.html",
-            "file": "c:\\Users\\kless\\Downloads\\Banco de dados\\Post_P_criação de playlist\\templates\\index.html"
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "app.py",
+                "FLASK_ENV": "development"
+            },
+            "args": [
+                "run",
+                "--no-debugger",
+                "--no-reload"
+            ],
+            "jinja": true, // Para debug de templates
+            "justMyCode": true
         }
     ]
 }
